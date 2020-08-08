@@ -11,6 +11,8 @@ import os
 import fcntl
 import hashlib
 
+import focker.config as config
+
 
 def filehash(fname):
     h = hashlib.sha256()
@@ -41,10 +43,10 @@ def find_prefix(head, tail):
 
 
 def focker_lock():
-    os.makedirs('/var/lock', exist_ok=True)
+    os.makedirs(config.LOCKDIR, exist_ok=True)
     if focker_lock.fd is None:
-        focker_lock.fd = open('/var/lock/focker.lock', 'a+')
-    print('Waiting for /var/lock/focker.lock ...')
+        focker_lock.fd = open(config.LOCKFILE, 'a+')
+    print(f'Waiting for {config.LOCKFILE} ...')
     fcntl.flock(focker_lock.fd, fcntl.LOCK_EX)
     print('Lock acquired.')
 focker_lock.fd = None

@@ -10,3 +10,6 @@ __pycache__
 .coverage
 /scripts/jail
 /scripts/focker-bsdinstall.not-needed
+/venv
+.idea
+focker.egg-info
