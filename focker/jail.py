@@ -16,9 +16,7 @@ import jailconf
 from .mount import getmntinfo
 import shlex
 import stat
-from .misc import focker_lock, \
-    focker_unlock, \
-    random_sha256_hexdigest
+from .misc import random_sha256_hexdigest, FockerLock
 from .jailspec import jailspec_to_jailconf
 
 
@@ -223,9 +221,8 @@ def command_jail_exec(args):
     name, _ = zfs_find(args.reference, focker_type='jail')
     path = zfs_mountpoint(name)
     jid = get_jid(path)
-    focker_unlock()
-    subprocess.run(['jexec', str(jid)] + args.command)
-    focker_lock()
+    with FockerLock(reverse=True):
+        subprocess.run(['jexec', str(jid)] + args.command)
 
 
 def jail_oneshot(image, command, env, mounts):
@@ -241,9 +238,8 @@ def jail_oneshot(image, command, env, mounts):
     }
     jailname = os.path.split(path)[-1]
     jail_create(spec, jailname)
-    focker_unlock()
-    subprocess.run(['jail', '-c', jailname])
-    focker_lock()
+    with FockerLock(reverse=True):
+        subprocess.run(['jail', '-c', jailname])
     jail_remove(path)
 
 

@@ -1,3 +1,4 @@
+from focker import config
 from focker.compose import exec_hook, \
     exec_prebuild, \
     exec_postbuild, \
@@ -12,8 +13,7 @@ from tempfile import TemporaryDirectory
 import os
 import pytest
 import fcntl
-from focker.misc import focker_lock, \
-    focker_unlock
+from focker.misc import FockerLock
 import inspect
 import ast
 import stat
@@ -85,13 +85,12 @@ def test_exec_hook_06():
 
 def test_exec_hook_07():
     os.chdir('/')
-    spec = 'flock --nonblock /var/lock/focker.lock -c ls'
-    focker_lock()
-    assert fcntl.flock(focker_lock.fd, fcntl.LOCK_EX | fcntl.LOCK_NB) != 0
-    with TemporaryDirectory() as d:
-        exec_hook(spec, d, 'test-exec-hook')
-    assert fcntl.flock(focker_lock.fd, fcntl.LOCK_EX | fcntl.LOCK_NB) != 0
-    focker_unlock()
+    spec = 'flock --nonblock {} -c ls'.format(config.LOCKFILE)
+    with FockerLock() as lock:
+        assert fcntl.flock(lock.fd, fcntl.LOCK_EX | fcntl.LOCK_NB) != 0
+        with TemporaryDirectory() as d:
+            exec_hook(spec, d, 'test-exec-hook')
+        assert fcntl.flock(lock.fd, fcntl.LOCK_EX | fcntl.LOCK_NB) != 0
 
 
 def _test_simple_forward(fun, fwd_fun_name='exec_hook'):
@@ -144,6 +143,8 @@ def test_build_volumes():
 
 
 def test_build_images():
+    fl = FockerLock()
+    fl.release()
     subprocess.check_output(['focker', 'image', 'remove', '--force', 'test-focker-bootstrap'])
     subprocess.check_output(['focker', 'bootstrap', '--empty', '--tags', 'test-focker-bootstrap'])
     subprocess.check_output(['focker', 'image', 'remove', '--force', 'test-build-images'])
@@ -168,7 +169,7 @@ def test_build_images():
         build_images({
             'test-build-images': '.'
         }, d, args)
-    focker_unlock()
+    fl.release()
     name, _ = zfs_find('test-build-images', focker_type='image')
     assert os.path.exists(os.path.join(zfs_mountpoint(name), 'test-build-images'))
     subprocess.check_output(['focker', 'image', 'remove', '--force', 'test-build-images'])

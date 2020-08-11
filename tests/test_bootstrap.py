@@ -1,4 +1,6 @@
 import subprocess
+
+from focker.misc import FockerLock
 from focker.zfs import *
 import re
 import os
@@ -7,7 +9,6 @@ from focker.bootstrap import command_bootstrap, \
     _bootstrap_common, \
     _bootstrap_common_finalize, \
     create_interface
-from focker.misc import focker_unlock
 import pytest
 import focker.bootstrap
 import hashlib
@@ -39,16 +40,16 @@ def test_bootstrap_02():
     args.add_pf_rule = False
     args.tags = ['test-focker-bootstrap']
     command_bootstrap(args)
-    focker_unlock()
-    name, sha256 = zfs_find('test-focker-bootstrap', focker_type='image')
-    basename = os.path.basename(name)
-    assert 7 <= len(basename) <= 64
-    assert re.search('[a-f]', basename[:7])
-    assert len(sha256) == 64
-    assert basename == sha256[:len(basename)]
-    assert zfs_exists_snapshot_sha256(sha256)
-    assert zfs_parse_output(['zfs', 'get', '-H', 'rdonly', name])[0][2] == 'on'
-    subprocess.check_output(['zfs', 'destroy', '-r', '-f', name])
+    with FockerLock(reverse=True):
+        name, sha256 = zfs_find('test-focker-bootstrap', focker_type='image')
+        basename = os.path.basename(name)
+        assert 7 <= len(basename) <= 64
+        assert re.search('[a-f]', basename[:7])
+        assert len(sha256) == 64
+        assert basename == sha256[:len(basename)]
+        assert zfs_exists_snapshot_sha256(sha256)
+        assert zfs_parse_output(['zfs', 'get', '-H', 'rdonly', name])[0][2] == 'on'
+        subprocess.check_output(['zfs', 'destroy', '-r', '-f', name])
 
 
 def test_bootstrap_03():

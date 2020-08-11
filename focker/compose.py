@@ -21,12 +21,10 @@ from .jail import jail_fs_create, \
     backup_file, \
     quote
 from .misc import random_sha256_hexdigest, \
-    find_prefix
+    find_prefix, FockerLock
 import subprocess
 import jailconf
 import os
-from .misc import focker_lock, \
-    focker_unlock
 import pdb
 
 
@@ -40,9 +38,8 @@ def exec_hook(spec, path, hook_name='exec.prebuild'):
     spec = [ '/bin/sh', '-c', spec ]
     oldwd = os.getcwd()
     os.chdir(path)
-    focker_unlock()
-    res = subprocess.run(spec)
-    focker_lock()
+    with FockerLock(reverse=True):
+        res = subprocess.run(spec)
     if res.returncode != 0:
         raise RuntimeError('%s failed' % hook_name)
     os.chdir(oldwd)
@@ -92,9 +89,8 @@ def build_images(spec, path, args):
             os.path.join(path, focker_dir), '-t', tag]
         if args.squeeze:
             cmd.append('--squeeze')
-        focker_unlock()
-        res = subprocess.run(cmd)
-        focker_lock()
+        with FockerLock(reverse=True):
+            res = subprocess.run(cmd)
         if res.returncode != 0:
             raise RuntimeError('Image build failed: ' + str(res.returncode))
 

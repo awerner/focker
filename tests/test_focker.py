@@ -181,14 +181,14 @@ def test_focker_main_01(monkeypatch):
             log[fun.__name__].append((args, kwargs))
             return fun(*args, **kwargs)
         return inner
-    monkeypatch.setattr(focker.focker, 'focker_lock', log_call(focker_lock))
+    monkeypatch.setattr(focker.focker.FockerLock, 'aquire', log_call(FockerLock.aquire))
     monkeypatch.setattr(focker.focker, 'zfs_init', log_call(zfs_init))
     monkeypatch.setattr(focker.focker, 'create_parser', log_call(create_parser))
     monkeypatch.setattr(focker.focker, 'command_image_list', log_call(command_image_list))
     monkeypatch.setattr(sys, 'argv', ['focker', 'image', 'list'])
     main()
     assert len(log) == 4
-    assert 'focker_lock' in log
+    assert 'aquire' in log
     assert 'zfs_init' in log
     assert 'create_parser' in log
     assert 'command_image_list' in log

@@ -43,7 +43,7 @@ from .compose import \
     command_compose_build, \
     command_compose_run
 from .bootstrap import command_bootstrap
-from .misc import focker_lock
+from .misc import FockerLock
 
 
 class ListForwarderFunctor(object):
@@ -251,15 +251,15 @@ def create_parser():
 
 
 def main():
-    focker_lock()
-    zfs_init()
-    parser = create_parser()
-    args = parser.parse_args()
-    if not hasattr(args, 'func'):
-        parser.print_usage()
-        sys.exit('You must choose a mode')
+    with FockerLock():
+        zfs_init()
+        parser = create_parser()
+        args = parser.parse_args()
+        if not hasattr(args, 'func'):
+            parser.print_usage()
+            sys.exit('You must choose a mode')
 
-    args.func(args)
+        args.func(args)
 
 
 if __name__ == '__main__':

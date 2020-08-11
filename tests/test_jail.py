@@ -15,6 +15,8 @@ from focker.jailspec import gen_env_command, \
 import tempfile
 import os
 import subprocess
+
+from focker.misc import FockerLock
 from focker.zfs import zfs_mountpoint, \
     zfs_exists, \
     zfs_tag, \
@@ -24,7 +26,6 @@ import shutil
 from focker.mount import getmntinfo
 import pytest
 import focker.jail
-from focker.misc import focker_unlock
 
 
 def setup_module(module):
@@ -229,7 +230,8 @@ def test_jail_oneshot_01():
         jail_oneshot('test-jail',
             ['/bin/sh', '-c', 'echo test-jail-oneshot-01 $FOO $BAR >/mnt/test.txt'],
             {'FOO': '1', 'BAR': '2'}, {d: '/mnt'})
-        focker_unlock()
+        fl = FockerLock()
+        fl.release()
         assert os.path.exists(os.path.join(d, 'test.txt'))
         with open(os.path.join(d, 'test.txt'), 'r') as f:
             assert f.read() == 'test-jail-oneshot-01 1 2\n'

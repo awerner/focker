@@ -6,8 +6,7 @@
 #
 
 from .zfs import *
-from .misc import focker_lock, \
-    focker_unlock
+from .misc import FockerLock
 
 
 def new_snapshot(base, fun, name, props={}):
@@ -24,11 +23,8 @@ def new_snapshot(base, fun, name, props={}):
     cmd += [ base, name ]
     zfs_run(cmd)
     try:
-        try:
-            focker_unlock()
+        with FockerLock(reverse=True):
             fun()
-        finally:
-            focker_lock()
         zfs_run(['zfs', 'set', 'readonly=on', name])
         snap_name = name + '@1'
         zfs_run(['zfs', 'snapshot', snap_name])
